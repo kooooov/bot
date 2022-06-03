@@ -10,7 +10,7 @@ import datetime
 
 
 # -----------------------------------------------------------------------
-def get_text_messages(bot, message, update, context):
+def get_text_messages(bot, cur_user, message):
     chat_id = message.chat.id
     ms_text = message.text
 
@@ -38,8 +38,8 @@ def get_text_messages(bot, message, update, context):
     elif ms_text == 'Орел или решка':
         head_or_tail(bot, chat_id)
 
-    # elif ms_text == 'Agario':
-    #     start_hor(bot, chat_id, update, context)
+    elif ms_text == 'Agario':
+        start_hor(bot, chat_id)
 
     elif ms_text == 'Узнать правду':
         gay_or_not(bot, chat_id)
@@ -168,93 +168,26 @@ def gay_or_not(bot, chat_id):
 
 # ------------------------------------------------------------------------------------------------
 
-STATE = None
-BIRTH_YEAR = 1
-BIRTH_MONTH = 2
-BIRTH_DAY = 3
 
-
-def start_hor(bot, chat_id, update, context):
+def start_hor(bot, chat_id):
     bot.send_message(chat_id, f"Мне нужна некоторые данные о вас, чтобы подобрать гороскоп")
-    start_getting_birthday_info(update, context, chat_id, bot)
+    ResponseHandler = lambda message: calculate_zodiac(chat_id, bot, message.text)
+    my_input(bot, chat_id, f"Введите свою дату рождения в формате DD.MM.YYYY", ResponseHandler)
 
 
-def start_getting_birthday_info(update, context, chat_id, bot):
-    global STATE
-    STATE = BIRTH_YEAR
-    bot.send_message(chat_id, f"В каком году вы родились (2003, 1978, 1670...)?")
-    received_birth_year(update, context, bot, chat_id)
+# -----------------------------------------------------------------------
+def my_input(bot, chat_id, txt, ResponseHandler):
+    message = bot.send_message(chat_id, text=txt)
+    bot.register_next_step_handler(message, ResponseHandler)
+    print(message.text)
 
 
-def received_birth_year(update, context, bot, chat_id):
-    global STATE
-    try:
-        today = datetime.date.today()
-        year = int(update.message.text)
-        if year > today.year:
-            raise ValueError("неверное значение")
-        context.user_data['birth_year'] = year
-        bot.send_message(chat_id, f"Напишите месяц своего рождения (декабрь - 12, ноябрь - 11 и т. д.)")
-        STATE = BIRTH_MONTH
-        received_birth_month(update, context, bot, chat_id)
-    except:
-        update.message.reply_text(
-            "неверное значение")
-
-
-def received_birth_month(update, context, bot, chat_id):
-    global STATE
-    try:
-        month = int(update.message.text)
-        if month > 12 or month < 1:
-            raise ValueError("неверное значение")
-        context.user_data['birth_month'] = month
-        bot.send_message(chat_id, f"Отлично! Остался только день")
-        STATE = BIRTH_DAY
-        received_birth_day(update, context, bot, chat_id)
-    except:
-        bot.send_message(chat_id, "неверное значение")
-
-
-def received_birth_day(update, context, bot, chat_id):
-    global STATE
-    try:
-        today = datetime.date.today()
-        dd = int(update.message.text)
-        yyyy = context.user_data['birth_year']
-        mm = context.user_data['birth_month']
-        birthday = datetime.date(year=yyyy, month=mm, day=dd)
-        if today - birthday < datetime.timedelta(days=0):
-            raise ValueError("неверное значение")
-        context.user_data['birthday'] = birthday
-        STATE = None
-        bot.send_message(chat_id, f'Итак, вы родились {birthday}')
-    except:
-        bot.send_message(chat_id, "неверное значение")
-
-
-def text(update, context, bot, chat_id):
-    global STATE
-    if STATE == BIRTH_YEAR:
-        return received_birth_year(update, context, bot, chat_id)
-    if STATE == BIRTH_MONTH:
-        return received_birth_month(update, context, bot, chat_id)
-    if STATE == BIRTH_DAY:
-        return received_birth_day(update, context, bot, chat_id)
-
-
-def hor_send(update, context, sign, user_hor_text):
-    calculate_zodiac(context.user_data['birthday'])
-    update.message.reply_text(f"Ваш знак зодиака: {sign}")
-    update.message.reply_text(f"Ваш гороскоп:\n {user_hor_text}")
-
-
-def calculate_zodiac(birthdate):
+def calculate_zodiac(chat_id, bot, date):
     import pyaztro
-
-    m = birthdate.month
-    d = birthdate.day
-
+    bot.send_message(chat_id, text=f"Вы родились {date}")
+    m = int(date[3:5])
+    d = int(date[0:2])
+    sign = ""
     if m == 12:
         sign = 'sagittarius' if (d < 22) else 'capricorn'
     elif m == 1:
@@ -279,6 +212,5 @@ def calculate_zodiac(birthdate):
         sign = 'libra' if (d < 23) else 'scorpio'
     elif m == 11:
         sign = 'scorpio' if (d < 22) else 'sagittarius'
-
-    user_hor = pyaztro.Aztro(sign=sign)
-    user_hor_text = sign.description
+    bot.send_message(chat_id, text=f"Твой знак зодиака {sign}")
+    bot.send_message(chat_id, text=f"{pyaztro.Aztro(sign=sign).description}")

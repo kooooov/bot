@@ -10,10 +10,11 @@ class Users:
     activeUsers = {}
 
     def __init__(self, chat_id, user_json):
+        print(user_json)
         self.id = user_json["id"]
         self.isBot = user_json["is_bot"]
         self.firstName = user_json["first_name"]
-        self.userName = user_json["username"]
+        self.userName = user_json["last_name"]
         self.languageCode = user_json.get("language_code", "")
         self.__class__.activeUsers[chat_id] = self
 
