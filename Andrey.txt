@@ -1,2 +1,0 @@
-USER_ID = 1011165147
-USER_NAME = Andrey
